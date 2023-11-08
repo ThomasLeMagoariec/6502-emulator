@@ -60,11 +60,28 @@ struct CPU
         return data;
     }
 
+    static constexpr byte
+        INS_LDA_IM = 0xA9;
+
     void execute(u32 cycles, Mem& memory)
     {
         while (cycles > 0)
         {
             byte ins = fetchByte(cycles, memory);
+
+            switch (ins)
+            {
+                case INS_LDA_IM:
+                {
+                    byte value = fetchByte(cycles, memory);
+                    
+                    A = value;
+                    Z = (A == 0);
+                    N = (A & 0b100000000) > 0;
+                    
+                    break;
+                }
+            }
         }
     }
 
