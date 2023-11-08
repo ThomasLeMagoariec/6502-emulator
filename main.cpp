@@ -23,6 +23,12 @@ struct Mem
     {
         return data[addr];
     }
+
+    // write byte
+    byte& operator[](u32 addr)
+    {
+        return data[addr];
+    }
 };
 
 struct CPU
@@ -61,7 +67,7 @@ struct CPU
     }
 
     static constexpr byte
-        INS_LDA_IM = 0xA9;
+        INS_LDA_IM = 0xA9; // ? load Accumulator Immediate mode
 
     void execute(u32 cycles, Mem& memory)
     {
@@ -78,7 +84,12 @@ struct CPU
                     A = value;
                     Z = (A == 0);
                     N = (A & 0b100000000) > 0;
-                    
+
+                    break;
+                }
+                default:
+                {
+                    printf("instruction not handled '%d'", ins);
                     break;
                 }
             }
@@ -92,6 +103,8 @@ int main()
     Mem mem;
     CPU cpu;
     cpu.reset(mem);
+    mem[0xFFFC] = CPU::INS_LDA_IM;
+    mem[0xFFFD] = 0x69;
     cpu.execute(2, mem);
     return 0;
 }
