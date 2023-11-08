@@ -74,8 +74,9 @@ struct CPU
     }
 
     static constexpr byte
-        INS_LDA_IM = 0xA9, // ? load accumulator immediate mode
-        INS_LDA_ZP = 0xA5; // ? load accumulator zero page
+        INS_LDA_IM = 0xA9,  // ? load accumulator immediate mode
+        INS_LDA_ZP = 0xA5,  // ? load accumulator zero page
+        INS_LDA_ZPX = 0xB5; // ? load accumulator zero page + X
 
     void LDASetStatus()
     {
@@ -109,6 +110,16 @@ struct CPU
 
                     break;
                 }
+                case INS_LDA_ZPX:
+                {
+                    byte zp_addr = fetchByte(cycles, memory);
+                    zp_addr += X;
+                    cycles--;
+                    A = readByte(cycles, zp_addr, memory);
+
+                    LDASetStatus();
+                    break;
+                }
                 default:
                 {
                     printf("instruction not handled '%d'", ins);
@@ -133,6 +144,6 @@ int main()
     printf("A = %d\n", cpu.A);
     printf("X = %d\n", cpu.X);
     printf("Y = %d\n", cpu.Y);
-    
+
     return 0;
 }
