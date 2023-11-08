@@ -29,6 +29,14 @@ struct Mem
     {
         return data[addr];
     }
+
+    void writeWord(word value, u32 addr, u32& cycles)
+    {
+        data[addr] = value & 0xFF;
+        data[addr + 1] = (value >> 8);
+        
+        cycles -= 2;
+    }
 };
 
 struct CPU
@@ -66,6 +74,23 @@ struct CPU
         return data;
     }
 
+    byte fetchWord(u32& cycles, Mem& memory)
+    {
+
+        // ! ONLY WORKS ON LITTLE ENDIANT ARCHS
+        //   (for now)
+        word data = memory[PC];
+        PC++;
+
+        data |= (memory[PC] << 8);
+        PC++;
+
+        cycles -= 2;
+
+        return data;
+
+    }
+
     byte readByte(u32& cycles, byte addr, Mem& memory)
     {
         byte data = memory[addr];
@@ -76,7 +101,8 @@ struct CPU
     static constexpr byte
         INS_LDA_IM = 0xA9,  // ? load accumulator immediate mode
         INS_LDA_ZP = 0xA5,  // ? load accumulator zero page
-        INS_LDA_ZPX = 0xB5; // ? load accumulator zero page + X
+        INS_LDA_ZPX = 0xB5, // ? load accumulator zero page + X
+        INS_JSR = 0x20; // ? jump to subroutine
 
     void LDASetStatus()
     {
@@ -120,6 +146,14 @@ struct CPU
                     LDASetStatus();
                     break;
                 }
+                case INS_JSR:
+                {
+                    word subAddr = fetchWord(cycles, memory);
+                    memory.writeWord(PC - 1, SP, cycles);
+                    PC = subAddr;
+                    cycles--;
+                    break;
+                }
                 default:
                 {
                     printf("instruction not handled '%d'", ins);
@@ -136,10 +170,13 @@ int main()
     Mem mem;
     CPU cpu;
     cpu.reset(mem);
-    mem[0xFFFC] = CPU::INS_LDA_ZP;
+    mem[0xFFFC] = CPU::INS_JSR;
     mem[0xFFFD] = 0x42;
-    mem[0x0042] = 0x84;
-    cpu.execute(3, mem);
+    mem[0xFFFE] = 0x42;
+    mem[0x4242] = CPU::INS_LDA_IM;
+    mem[0x4243] = 0x84;
+
+    cpu.execute(9, mem);
 
     printf("A = %d\n", cpu.A);
     printf("X = %d\n", cpu.X);
