@@ -66,8 +66,22 @@ struct CPU
         return data;
     }
 
+    byte readByte(u32& cycles, byte addr, Mem& memory)
+    {
+        byte data = memory[addr];
+        cycles--;
+        return data;
+    }
+
     static constexpr byte
-        INS_LDA_IM = 0xA9; // ? load Accumulator Immediate mode
+        INS_LDA_IM = 0xA9, // ? load accumulator immediate mode
+        INS_LDA_ZP = 0xA5; // ? load accumulator zero page
+
+    void LDASetStatus()
+    {
+        Z = (A == 0);
+        N = (A & 0b100000000) > 0;
+    }
 
     void execute(u32 cycles, Mem& memory)
     {
@@ -82,8 +96,16 @@ struct CPU
                     byte value = fetchByte(cycles, memory);
                     
                     A = value;
-                    Z = (A == 0);
-                    N = (A & 0b100000000) > 0;
+                    LDASetStatus();
+
+                    break;
+                }
+                case INS_LDA_ZP:
+                {
+                    byte zp_addr = fetchByte(cycles, memory);
+                    A = readByte(cycles, zp_addr, memory);
+
+                    LDASetStatus();
 
                     break;
                 }
@@ -103,8 +125,14 @@ int main()
     Mem mem;
     CPU cpu;
     cpu.reset(mem);
-    mem[0xFFFC] = CPU::INS_LDA_IM;
-    mem[0xFFFD] = 0x69;
-    cpu.execute(2, mem);
+    mem[0xFFFC] = CPU::INS_LDA_ZP;
+    mem[0xFFFD] = 0x42;
+    mem[0x0042] = 0x84;
+    cpu.execute(3, mem);
+
+    printf("A = %d\n", cpu.A);
+    printf("X = %d\n", cpu.X);
+    printf("Y = %d\n", cpu.Y);
+    
     return 0;
 }
